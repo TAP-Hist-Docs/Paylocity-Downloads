@@ -32,17 +32,13 @@ import pygetwindow
 import shutil
 import keyboard   #from webdriver_manager.chrome import ChromeDriverManager
  
-server = "prod-di-db"
-user = "tapadmin"
-password = "Welcome@2021"
-database = "HRG"
  
 download_dir = os.path.dirname(os.path.realpath(__file__))+'\\temp_downloads'
-ConfigPath = 'config.ini'
+ConfigPath = os.path.dirname(os.path.realpath(__file__)) + '\\config.ini'
 firefox_location='./'
  
  
-global wait, driver, webpage_url, client_code, user_name, sq_1, sq_2, sq_3, sq_4, sq_5
+global wait, driver, webpage_url, client_code, user_name, password, sq_1, sq_2, sq_3, sq_4, sq_5
 global sql_server_name, sql_user_name, sql_password, sql_db, SQLconnection,min
  
  
@@ -50,18 +46,18 @@ def read_config_file():
     global webpage_url, client_code, user_name, password, sq_1, sq_2, sq_3, sq_4, sq_5
     global sql_server_name, sql_user_name, sql_password, sql_db
     try:
+        # configuration entries
         config = ConfigParser()
         config.read(ConfigPath)
-        webpage_url = config.get ("Data", "webpage_URL") 
-        client_code = config.get ("Data", "company_id") 
-        user_name = config.get ("Data", "user_name") 
-        password = config.get ("Data", "password") 
+        webpage_url = config.get ("Data", "webpage_URL")
+        user_name = config.get ("Data", "user_name")
+        password = config.get ("Data", "password")
         sql_server_name = config.get ("SQL", "server")
         sql_user_name = config.get ("SQL", "user")
-        sql_password = config.get ("SQL", "password") 
-        sql_db = config.get ("SQL", "database") 
+        sql_password = config.get ("SQL", "password")
+        sql_db = config.get ("SQL", "database")
         return(0)
-    except Exception as ex:
+    except Exception as e:
         print('config file read error')
         return(-1)
  
@@ -163,7 +159,7 @@ def login():
 
         xpath = '//*[@id="Username"]' #user id
         element = driver.find_element(By.XPATH,xpath)
-        element.send_keys("tapintegrationsP3")
+        element.send_keys("tapintegrations")
 
         xpath  = '//*[@id="Password"]' #password
         element = driver.find_element(By.XPATH,xpath)
@@ -194,11 +190,7 @@ def createFolder(sFolder):
         os.makedirs(sFolder)
         return(0)
  
-import pyodbc
-
-#-----------------------------------------#
-    
-def connectSQL(): 
+def connectSQL():
     global sql_server_name, sql_user_name, sql_password, sql_db, SQLconnection
     try:
         SQLconnection = pyodbc.connect('Driver={SQL Server};'
@@ -208,12 +200,11 @@ def connectSQL():
                             'PWD=' + sql_password + ';'
                             'Trusted_Connection=no;')
         return(0)
-    except Exception as ex:
-        print('SQL connection error ' ,ex)
+    except Exception as e:
+        print('SQL connection error')
         return(-1)
-
    
- #------------------------------------------------------------------------------------
+ 
 
 def rename_and_move_file(file_name, document_title, category, file_extension, target_dir, fld_name, download_dir, src_id, emp_name):
     try:
@@ -258,83 +249,16 @@ def wait_for_download(download_dir, timeout=30):
     return not dl_wait
    
 #--------------------------------------------------------------------------------------------------------
-
-
-import os
-
-def rename_file_in_downloads(file_name, downloads_path):
-    try:
-        counter = 1
-        file_count = os.listdir(downloads_path)
-        if len(file_count) > 0:
-            for file in os.listdir(downloads_path):
-                
-                base_name, extension = os.path.splitext(file)
-                if base_name == file_name: 
-                    print(base_name)
-                    unique_file_name = file_name+'_'+str(counter)
-                    print(unique_file_name)
-                    counter += 1
-                    return unique_file_name
-                else:
-                    unique_file_name = file_name
-        else:
-            unique_file_name = file_name
-    except Exception as g:
-        print("file rename error:",g)
-
-    return unique_file_name
-
-
-#--------------------------------------------------------------------------------------------------------
-
-
-def rename_filename(download_dir, dest_dir,emp_id,employee_name,file_name):
-    lis = os.listdir(download_dir)
-    # file_name = lis[0]
-    for file in lis:
-        base_name, extension = os.path.splitext(file)
-    
-    new_file_name = file_name + extension
-    destination_path = os.path.join(dest_dir, new_file_name)
-    # if '/' in new_file_name:
-    #         new_file_name = new_file_name.replace('/', '_')
-    
-    # Check if the file already exists in the destination directory
-    if os.path.exists(destination_path):
-        count = 1
-        while os.path.exists(destination_path):
-        
-            file_name = new_file_name.split('.')[0]
-            new_file_name = f"{file_name.split('_')[0]}_{count}{extension}"
-            destination_path = os.path.join(dest_dir, new_file_name)
-            count += 1
-    
-    os.rename(os.path.join(download_dir, lis[0]), os.path.join(download_dir, new_file_name))
-    print("renamed and moving the file")
-    # Move the file to the destination directory
-    shutil.move(os.path.join(download_dir, new_file_name), dest_dir)
-    h = open('downloaded files.csv', 'a')
-    h.write(f'"{employee_name}",{emp_id},"{new_file_name}"\n')
-    h.close()
-    return 'downloaded'
-
-#--------------------------------------------------------------------------------------------------------
-
  
 def searchanddownload(fld_name,last_name, src_id, emp_name):
     global SQLconnection,min
+    driver.get('https://login.paylocity.com/Escher/Escher_WebUI/EmployeeSearch/home/index?area=employees&view=EmployeeSearch')
+    time.sleep(4)
     try:
-        driver.get('https://login.paylocity.com/Escher/Escher_WebUI/EmployeeSearch/home/index?area=employees&view=EmployeeSearch')
-
-        # print(last_name)
-        time.sleep(5)
-        try:
-            xpath='//*[@id="breadcrumbs"]/ul/li[2]/ul/li/button/i' 
-            element = driver.find_element(By.XPATH,xpath)
-            element.click()
-        except:
-            pass
+        xpath='//*[@id="breadcrumbs"]/ul/li[2]/ul/li/button/i' # removes filter
+        element = driver.find_element(By.XPATH,xpath)
+        element.click()
+        time.sleep(2)
 
         button = driver.find_element(By.LINK_TEXT,"Advanced") # Clicks advanced
         driver.execute_script("arguments[0].click();", button)
@@ -376,8 +300,6 @@ def searchanddownload(fld_name,last_name, src_id, emp_name):
 
                 # If both id and company_id match, click the row and break the loop
                 if str(id) == str(src_id):
-                    createFolder("Z:/HRG/Documents/Paylocity/W2 & 1095C/"+fld_name)
-
                     click_xpath = f'//*[@role="rowgroup"][2]/tr[{i}]/td[2]/a'
                     element = driver.find_element(By.XPATH, click_xpath)
                     element.click()
@@ -385,181 +307,238 @@ def searchanddownload(fld_name,last_name, src_id, emp_name):
                     break
             else:
                 # If no matching row is found, continue the process
-                print("No matching ID and company ID found.")
+                print("No matching ID found.")
         else:
             print("No rows found in the table.")
         time.sleep(1)
-
-        #pay
-        xpath="/html/body/div[4]/div[1]/div/div[2]/div[2]/div/div/div/div/div[2]/div[1]/div/div/div/div/div/ul/li[2]/button"
-        xpath = "//span[normalize-space()='Pay']"
-        element=driver.find_element(By.XPATH, xpath)
-        driver.execute_script("arguments[0].click();", element)
-        time.sleep(5)
+        xpath = '//*[text()="Pay"]'
+        element = driver.find_element(By.XPATH,xpath)
+        element.click()
+        time.sleep(1)
+        xpath = '//span[text()="Checks"]'
+        element = driver.find_element(By.XPATH,xpath)
+        element.click()
+        time.sleep(1)
        
-        #tax form
-        xpath='/html/body/div[4]/div[1]/div/div[2]/div[2]/div/div/div/div/div[3]/div/div/div/div/div/ul/li[3]/button'
-        xpath = "//li[@data-automation-id='subtab-tax-forms']//button[@role='tab']"
-        element=driver.find_element(By.XPATH, xpath)
-        driver.execute_script("arguments[0].click();", element)
-        time.sleep(5)
-        download_path = r'C:/Users/RPATEAMADMIN/Downloads/'
+        #show private data
         try:
-            try:
-                xpath = '//*[@id="ep-drawer-root"]/div[2]/div/div/div/div/div[4]/div/div/div[2]/div'
-                xpath = "//body/div[@id='CoreHREmployeeProfile']/div[@class='ep-drawer']/div/div[@id='ep-drawer-root']/div[@class='css-1yb1fdg']/div[@class='css-0']/div[@class='pcty-row-flex css-0']/div[@class='pcty-col css-0']/div[@class='corehr-drawer-content']/div[@class='corehr-drawer-content-body ser-drawer-content-body']/div[@class='pcty-row-flex pcty-padding-horizontal ser-drawer-content-body-row css-0']/div[@class='pcty-col css-0']/div[@class='css-m47ybr-zero-state']/div[1]"
-                txt_element=driver.find_element(By.XPATH,xpath).text
-                print(txt_element)
-                if txt_element=="No records found.":
-                    f = open('No Record W2.csv', "a")
-                    f.write(f'W2:"{txt_element}","{fld_name}"\n')
-                    f.close()
-                    print("element not found")
-            except:
-                xpath = '//*[@id="ep-drawer-root"]/div[2]/div/div/div/div/div[4]/div/div/div[2]/div[1]/div/table/tbody/tr/td[1]/a'
-                link_paths=driver.find_elements(By.XPATH,xpath)
-                print(len(link_paths))
-                count = len(link_paths)
-                f = open('doc count.csv', "a")
-                f.write(f'W2_count:{count},"{fld_name}"\n')
-                f.close()
-                for link_path in link_paths:
-                    file_yr = link_path.text
-                    f = open('yrs in System W2.csv', "a")
-                    f.write(f'W2:{file_yr},"{fld_name}"\n')
-                    f.close()
-                    time.sleep(2)
-                    link_path.click()
-
-                    try:
-                        xpath = "//p[contains(text(),'Please authenticate before continuing. If you have')]"
-                        element=driver.find_element(By.XPATH,xpath)
-                        txt = element.text
-                        if txt == 'Please authenticate before continuing. If you have previously been authenticated then you are past the 2 hour limit for authentication.':
-                            xpath = "//div[@class='corehr-drawer-content-body ser-drawer-content-body']//button[1]//span[1]"
-                            element = driver.find_element(By.XPATH,xpath)
-                            element.click()
-                            time.sleep(2)
-                            xpath = "//div[contains(text(),'Send Pin')]"
-                            element = driver.find_element(By.XPATH,xpath)
-                            element.click()
-                            time.sleep(2)
-                            input('enter:')
-                            # time.sleep(2)
-                            # xpath = "//input[@id='sua-pin-input']"
-                            # element = driver.find_element(By.XPATH,xpath)
-                            # element.send_keys(otp)
-                            # time.sleep(2)
-                            # xpath = '//div[@class="css-dtw560" ]/div[text() = "Submit"]'
-                            # driver.find_element(By.XPATH,xpath).click()
-                            # time.sleep(2)
-                    except:
-                        pass
-                    time.sleep(4)
-                    driver.switch_to.window(driver.window_handles[-1])
-                    xpath = "//input[@id='pdfProtect_pdfPwdOptOut']"
-                    element=driver.find_element(By.XPATH,xpath)
-                    element.click()
-                    time.sleep(1)
-                    xpath = "//a[@id='pdfProtect_viewPDF']"
-                    element=driver.find_element(By.XPATH,xpath)
-                    element.click()
-                    time.sleep(10)
-                    driver.close()
-                    driver.switch_to.window(driver.window_handles[-1])  
-                    download_dir = r'C:/Users/RPATEAMADMIN/Downloads/'
-                    dst="Z:/HRG/Documents/Paylocity/W2 & 1095C/"+fld_name+'/'
-                    files = os.listdir(download_dir)   
-                    re = rename_filename(download_dir,dst,src_id,emp_name,file_yr+' - W2')
-
-
-        except Exception as h:
-            print("w2 error:",h)                      
-                           
-                        
-
+            xpath = '//*[@class="pcty-margin-top css-14bc3ye css-qvnb8s"]'
+            xpath = "//button[@class='pcty-margin-top css-1ke8rzj css-qvnb8s']"
+            element = driver.find_element(By.XPATH,xpath)
+            element.click()
+            time.sleep(5)       
+        except:
+            pass
         try:
-            try:
-                xpath = "//div[@class='pcty-row-flex pcty-padding-horizontal ser-drawer-content-body-row css-0']//div[@class='pcty-col css-0']//div//div[@class='css-m47ybr-zero-state']//div[@class='css-1a7bjfk-media-message'][normalize-space()='No records found.']"
-                txt_element=driver.find_element(By.XPATH,xpath).text
-                print(txt_element)
-                if txt_element=="No records found.":
-                    f = open('No Record 1095.csv', "a")
-                    f.write(f'1095C:"{txt_element}","{fld_name}"\n')
-                    f.close()
-                    print("element not found")
-            except:
-                xpath = '//*[@id="ep-drawer-root"]/div[2]/div/div/div/div/div[4]/div/div/div[3]/div[2]/div[1]/div/table/tbody/tr/td[1]/a'
-                link_paths = driver.find_elements(By.XPATH,xpath)
-                print(len(link_paths))
-                count = len(link_paths)
-                f = open('doc count.csv', "a")
-                f.write(f'"1095C_count":{count},"{fld_name}"\n')
-                f.close()
-                for link_path in link_paths:
-                    file_yr = link_path.text
-                    f = open('yrs in System 1095.csv', "a")
-                    f.write(f'1095C:{file_yr},"{fld_name}"\n')
-                    f.close()
-                    time.sleep(2)
-                    link_path.click()
-                    try:
-                        xpath = "//p[contains(text(),'Please authenticate before continuing. If you have')]"
-                        element=driver.find_element(By.XPATH,xpath)
-                        txt = element.text
-                        if txt == 'Please authenticate before continuing. If you have previously been authenticated then you are past the 2 hour limit for authentication.':
-                            xpath = "//div[@class='corehr-drawer-content-body ser-drawer-content-body']//button[1]//span[1]"
-                            element = driver.find_element(By.XPATH,xpath)
-                            element.click()
-                            time.sleep(2)
-                            xpath = "//div[contains(text(),'Send Pin')]"
-                            element = driver.find_element(By.XPATH,xpath)
-                            element.click()
-                            time.sleep(2)
-                            input('enter:')
-                            # time.sleep(2)
-                            # xpath = "//input[@id='sua-pin-input']"
-                            # element = driver.find_element(By.XPATH,xpath)
-                            # element.send_keys(otp)
-                            # time.sleep(2)
-                            # xpath = '//div[@class="css-dtw560" ]/div[text() = "Submit"]'
-                            # driver.find_element(By.XPATH,xpath).click()
-                            # time.sleep(2)
-                    except:
-                        pass
-                    time.sleep(4)
-                    driver.switch_to.window(driver.window_handles[-1])
-                    time.sleep(2)
-                    xpath = "//a[@id='ViewReportLink']"
-                    element=driver.find_element(By.XPATH,xpath)
-                    element.click()
-                    time.sleep(15)
-                    driver.switch_to.window(driver.window_handles[-1])
-                    xpath = "//input[@id='pdfProtect_pdfPwdOptOut']"
-                    element=driver.find_element(By.XPATH,xpath)
-                    element.click()
-                    time.sleep(1)
-                    xpath = "//a[@id='pdfProtect_viewPDF']"
-                    element=driver.find_element(By.XPATH,xpath)
-                    element.click()
-                    time.sleep(10)
-                    driver.close()
-                    driver.switch_to.window(driver.window_handles[-1])  
-                    time.sleep(2)                        
-                    driver.close()
-                    driver.switch_to.window(driver.window_handles[-1]) 
-                            
-                    download_dir = r'C:/Users/RPATEAMADMIN/Downloads/'
-                    dst="Z:/HRG/Documents/Paylocity/W2 & 1095C/"+fld_name+'/'
-                    files = os.listdir(download_dir)   
-                    re = rename_filename(download_dir,dst,src_id,emp_name,file_yr+' - 1095C')
-                    print(re)
-            
-        except Exception as f:
-            print('exception f is', f)
+            xpath = "//button[@id='pendo-close-guide-8fec1d7e']"
+            element = driver.find_element(By.XPATH,xpath)
+            element.click()
+        except:
             pass
         
-        
+        yrs = ['2024','2023','2022','2021','2020']
+        y=1
+        for yr in yrs:
+            try: 
+                xpath = '//*[@data-automation-id="btn-toggle-filter"]'
+                element = driver.find_element(By.XPATH,xpath)
+                element.click()
+                time.sleep(1)
+            except Exception as k:
+                print("exception k is:",k)
+                pass
+            try:
+                try:
+                    xpath = '//*[@id="startDateFilter-button"]'
+                    # element = driver.find_element(By.CSS_SELECTOR,'#startDateFilter-button')
+                    element = driver.find_element(By.XPATH,xpath)
+                    element.click()
+                    time.sleep(2)
+                except:
+                    pass
+                try:
+                    # Clicks on year
+                    element = driver.find_element(By.XPATH, '//span[@class="rdrYearPicker css-1frza2b"]')
+                    element.click()
+                except:
+                    pass
+                try:
+                    xpath = '//option[@value="'+str(yr)+'"]' # year
+                    element_yr = driver.find_element(By.XPATH,xpath)
+                    element_yr.click()
+                except:
+                    print(yr,"not found")
+                    with open('yrs not found.csv','a',encoding='utf-8') as f:
+                        f.write(f'{src_id},"{emp_name}",{yr}\n')
+                    try:
+                        xpath = '//*[@id="startDateFilter-button"]'
+                        # element = driver.find_element(By.CSS_SELECTOR,'#startDateFilter-button')
+                        element = driver.find_element(By.XPATH,xpath)
+                        element.click()
+                        time.sleep(2)
+                    except:
+                        pass
+                    continue
+                time.sleep(2)
+                element = driver.find_element(By.XPATH,'//span[@class="rdrMonthPicker css-lytxuw"]')
+                element.click()
+                time.sleep(2)
+                xpath = "//option[normalize-space()='January']"
+                element = driver.find_element(By.XPATH,xpath)
+                element.click()
+                time.sleep(2)
+                xpaths = [
+                    "//button[@class='rdrDay css-7w1la9 rdrDayStartOfMonth']//span[contains(text(),'1')]",
+                    "//button[@class='rdrDay css-7w1la9 rdrDayStartOfMonth']",
+                    "//button[@class='rdrDay css-7w1la9 rdrDayWeekend rdrDayEndOfWeek rdrDayStartOfMonth']//span[contains(text(),'1')]",
+                    "//button[@class='rdrDay css-7w1la9 rdrDayWeekend rdrDayStartOfWeek rdrDayStartOfMonth']//span[contains(text(),'1')]"
+                ]
+
+                # Iterate through the XPath expressions
+                clicked = False
+                for xpath in xpaths:
+                    try:
+                        # Try to find the element
+                        element = driver.find_element(By.XPATH, xpath)
+                        element.click()
+                        time.sleep(2)
+                        break  # Exit loop after successful click
+                    except :
+                        print(f"No element found for XPath: {xpath}")
+
+                
+            except Exception as g:
+                print("Exception in start date:",g)
+            try:
+                element = driver.find_element(By.CSS_SELECTOR,'#endDateFilter-button')
+                element.click()
+                time.sleep(2)
+                # Clicks on year
+                # element = driver.find_element(By.XPATH, '//span[@class="rdrYearPicker css-1frza2b"]')
+                element= driver.find_element(By.XPATH,"//span[@class='rdrYearPicker css-1frza2b']//select")
+                element.click()
+                try:
+                    xpath = '//option[@value="'+str(yr)+'"]' # year
+                    element_yr = driver.find_element(By.XPATH,xpath)
+                    element_yr.click()
+                except:
+                    print(yr,"not found")
+                time.sleep(2)
+                element = driver.find_element(By.XPATH,'//span[@class="rdrMonthPicker css-lytxuw"]')
+                element.click()
+                time.sleep(2)
+                xpath = "//option[normalize-space()='December']"
+                element = driver.find_element(By.XPATH,xpath)
+                element.click()
+                time.sleep(2)
+
+                xpaths = [
+                    "//button[@class='rdrDay css-7w1la9 rdrDayEndOfMonth']",
+                    "//button[@class='rdrDay css-7w1la9 rdrDayWeekend rdrDayEndOfWeek rdrDayEndOfMonth']",
+                    "//button[@class='rdrDay css-7w1la9 rdrDayWeekend rdrDayStartOfWeek rdrDayEndOfMonth']"
+                    ]
+
+                # Iterate through the XPaths and click the elements
+                for xpath in xpaths:
+                    try:
+                        # Try to find the element
+                        element = driver.find_element(By.XPATH, xpath)
+                        element.click()
+                        time.sleep(2)  # Add delay if needed
+                        
+                        print(f"Clicked element with XPath: {xpath}")
+                    except :
+                        print(f"No element found for XPath: {xpath}")
+                
+
+            except Exception as h:
+                print("exception in end date:",h)
+            xpath = '//*[text()="Apply Filter"]'
+            element = driver.find_element(By.XPATH,xpath)
+            element.click()
+            time.sleep(6)
+            
+            xpath = '//*[@id="checks-sidebar"]/div[2]/div/div/div[2]/div/div/div[1]/p'
+            element_names = driver.find_elements(By.XPATH,xpath)
+            for element_name in element_names:
+                element_name = element_name.text
+                with open('File Names.csv','a',encoding = 'utf-8') as g:
+                    g.write(f'{src_id},"{emp_name}",{yr},"{element_name}"\n')
+            
+            xpath = '//*[@id="checks-sidebar"]/div[2]/div/div'
+            elements = driver.find_elements(By.XPATH, xpath)
+            doc_count = len(elements)
+            print(f"Document count: {doc_count}")
+            with open('doc_count.csv','a',encoding = 'utf-8') as g:
+                g.write(f'{src_id},"{emp_name}",{yr},{doc_count}\n')
+            for i in range(doc_count):
+                try:
+                    # Re-fetch elements to avoid stale references
+                    elements = driver.find_elements(By.XPATH, xpath)
+                    parent = elements[i].find_element(By.XPATH, './div[2]')
+                    cls = parent.get_attribute('class')
+                    print(f"Processing element {i+1}/{doc_count}, Class: {cls}")
+
+                    if i == 0:
+                        print("Handling the first document directly.")
+                        download_xpath = "//div[contains(text(),'Download Paystub')]"
+                        download_button = WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable((By.XPATH, download_xpath))
+                        )
+                        download_button.click()
+                        time.sleep(10)  # Allow time for download
+                        continue
+                    
+                    if cls in ['css-rlt06n', 'css-1snfe5f']:
+                        parent.click()  # Perform click action
+                        time.sleep(2)  # Optional: Adjust based on loading times
+                        
+                        download_xpath = "//div[contains(text(),'Download Paystub')]"
+                        download_button = WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable((By.XPATH, download_xpath))
+                        )
+                        download_button.click()
+                        time.sleep(10)  # Allow time for download to process
+                        # Check for the error message
+                        error_xpath = "//*[text()='An error occurred while downloading the paystubs']"
+                        try:
+                            error_element = WebDriverWait(driver, 5).until(
+                                EC.presence_of_element_located((By.XPATH, error_xpath))
+                            )
+                            print("Error detected while downloading the paystub.")
+                            
+                            # Close the error dialog
+                            close_button_xpath = '/html/body/div[4]/div[1]/div/div[2]/div[1]/div/div[3]/div[3]/button'
+                            close_button = WebDriverWait(driver, 5).until(
+                                EC.element_to_be_clickable((By.XPATH, close_button_xpath))
+                            )
+                            close_button.click()
+                            txt = parent.text
+                            with open('error file.csv','a',encoding = 'utf-8') as g:
+                                g.write(f'{src_id},"{emp_name}",{yr},"{txt}"\n')
+                            print("Error dialog closed.")
+                        except:
+                            print("No error occurred during this download.")
+                except Exception as e:
+                    print(f"Error processing element {i+1}: {e}")
+                    
+            
+            createFolder("Z:/HRG/Documents/Paylocity/Paystubs/"+fld_name+"/"+yr)
+            time.sleep(2)
+            download_dir = r'C:/Users/RPATEAMADMIN/Downloads/'
+            files = os.listdir(download_dir)   
+            for file in files:
+                old_path = os.path.join(download_dir, file)
+                new_filename = file
+                f = open('downloaded files.csv', "a")
+                f.write(f'{{"paystub filenames": "{new_filename}", "{fld_name}"}}\n')
+                f.close()
+                dst="Z:/HRG/Documents/Paylocity/Paystubs/"+fld_name+'/'+yr+'/'
+                new_path = os.path.join(dst, new_filename)
+                shutil.move(old_path,new_path)  
+                value = '"'+fld_name +'"'+", downloaded"
+                print(value)
+
         # xpath="/html/body/div[4]/div[1]/div/div[2]/div[1]/div/div[2]/div[2]/div/div[2]/button[2]/div/div"
         # element=driver.find_element(By.XPATH,xpath)
         # element.click()
@@ -569,7 +548,7 @@ def searchanddownload(fld_name,last_name, src_id, emp_name):
         # element=driver.find_element(By.XPATH,xpath)
         # element.click()
         # time.sleep(5)
-        print("Employee documents Not downloaded\n",e)
+        print("Employee documents Not downloaded\n")
         f= open('employee error.csv',"a")
         f.write(fld_name)
         f.write('\n')
@@ -587,74 +566,73 @@ def main():
     connectSQL() 
     login()
  
-    import csv
+    # import csv
     # rows = []
-    # with open("a.csv", 'r') as file:
+    # with open("a2.csv", 'r') as file:
     #     csvreader = csv.reader(file)
     #     header = next(csvreader)
     #     for row in csvreader:
     #         rows.append(row)
     # print(len(rows))
     rows = []
-    select_statement = "SELECT [Employee_ID],[Last_Name],[First_Name],[IsDownloaded_W2_1095]"
+    select_statement = "SELECT [Employee_ID],[Last_Name],[First_Name],[IsDownloaded_Paystubs]"
     select_statement = select_statement + "FROM [HRG].[dbo].[Emp_Roster]"
-    # select_statement += "WHERE [Company] = 'BerlinRosen';"
     cursor = SQLconnection.cursor()
     cursor.execute(select_statement)
     rows = cursor.fetchall()
     cursor.close()
-    #266,267             #Term 448(Vm24)
-    for i in range(0,190):
+#266,267             #Term 448(Vm24)
+    for i in range(0,len(rows)):
         each = rows[i]
-        src_id = str(each[0]).strip()  
-        # src_id = src_id_1.zfill(5)
-        print("initial print:",src_id)
+        src_id = each[0].strip()
+        print(src_id)
         #src_id = src_id.zfill(6)
         last_name = each[1].strip()
         first_name = each[2].strip()
         #emp_name = each[1].strip()
         emp_name = last_name+", "+first_name
         print(emp_name)
-        isdownloaded = each[3]
-        # path_1 = r'C:\Users\RPATEAMADMIN\Downloads'
         path_1 = r'C:/Users/RPATEAMADMIN/Downloads/'
         files = os.listdir(path_1)
         # Iterate over the files and delete them
-        count = len(os.listdir(path_1))
-        if count>0:
-                print("document count in downloads:",count)
-                break
-                #os.remove(file_path)
-                #print(f"Deleted {file_path}")
+        for file in files:
+            file_path = os.path.join(path_1, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                print(f"Deleted {file_path}")
+                # path = "Z:/HRG/Documents/Paylocity/Paystubs/"
         
-        path = "Z:/HRG/Documents/Paylocity/W2 & 1095C/"
-        directory_contents = os.listdir(path)
+        # directory_contents = os.listdir(path)
         fld_name = emp_name+" ("+src_id+")"
+        # remove folder if already exits in destination
+        
+        var=each[3]
         # if fld_name not in directory_contents:
-        if not isdownloaded:
-            print("entered_searchanddownload")
-            destination_folder = 'Z:/HRG/Documents/Paylocity/W2 & 1095C/'+fld_name
+        if not var:
+            destination_folder = "Z:/HRG/Documents/Paylocity/Paystubs"+'/'+fld_name
             print(destination_folder)
             if os.path.exists(destination_folder):
                 # Remove the entire folder and its contents
                 shutil.rmtree(destination_folder)
                 print('removed', destination_folder)
+            print("entered_searchanddownload")
             # err_f = 1
             # count_flag = 1
             # while(err_f):
-            res = searchanddownload(fld_name,last_name, src_id, emp_name)
+            res = searchanddownload(fld_name, last_name,src_id, emp_name)
             print("res=",res)
             if res == 0:
                 cursor = SQLconnection.cursor()
-                cursor.execute("UPDATE [HRG].[dbo].[Emp_Roster] SET [IsDownloaded_W2_1095] = ? WHERE [Employee_ID] = ?;",
+                cursor = SQLconnection.cursor()
+                cursor.execute("UPDATE [HRG].[dbo].[Emp_Roster] SET [IsDownloaded_Paystubs] = ? WHERE [Employee_ID] = ?;",
                 (1, src_id))
                 print(src_id," :Updated in Emp_List")
                 SQLconnection.commit()
 
 
-            # elif res<0:
-            #     print('Employee error '+src_id+" "+emp_name)
-            #     continue
+            elif res<0:
+                print('Employee error '+src_id+" "+emp_name)
+                continue
 
  
 #--------------------------------------------------------------------------------------------------------
